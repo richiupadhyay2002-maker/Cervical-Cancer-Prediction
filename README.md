@@ -44,6 +44,17 @@ This project performs a comprehensive analysis of cervical cancer risk factors u
 
 ---
 
+## Tests
+
+The notebooks' data-cleaning, EDA and evaluation logic is also available as an importable package in `src/cervical_cancer/`, with unit tests in `tests/`:
+
+```bash
+pip install -r requirements.txt
+pytest   # runs tests with a coverage report
+```
+
+---
+
 ## 👤 Author
 
 **Richi Upadhyay** — Data Science & Machine Learning

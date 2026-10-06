@@ -1,0 +1,89 @@
+# ============================================================================
+# .dockerignore - Exclude files from Docker build context
+# ============================================================================
+# Reduces build context size and speeds up Docker builds
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+README1.md
+*.md
+!api/app/templates/risk_report_template.md
+*.pdf
+*.docx
+
+# Jupyter notebooks (not needed in container)
+*.ipynb
+.ipynb_checkpoints/
+
+# Data files (not needed in container - mounted as volumes)
+*.csv
+*.npy
+*.zip
+extracted/
+data/
+
+# MLflow artifacts and database (mounted as volumes)
+mlruns/
+notebooks/mlruns/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+output_*/
+
+# API docs / config dirs
+docs/
+config/
+
+# Environment files (handled via docker-compose environment:)
+.env
+.env.local
+
+# Tests
+test_*.py
+check_*.py
+fix_*.py
+generate_*.py
+rewrite_*.py
+output_*.py
+
+# Temp
+temp/
+tmp/
+
+# Keep these (explicit include after exclusions):
+!api/
+!api/app/
+!api/run.py
+!api/requirements.txt
+!processed_data/
+!processed_data/feature_columns.json
+!notebooks/
+!notebooks/mlflow.db

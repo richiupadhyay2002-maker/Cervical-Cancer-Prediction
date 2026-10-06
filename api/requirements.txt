@@ -1,0 +1,16 @@
+# ── FastAPI & Server ────────────────────────────────────────────────────────
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+
+# ── Data Validation ─────────────────────────────────────────────────────────
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# ── MLflow & ML Dependencies ────────────────────────────────────────────────
+mlflow==2.22.5
+scikit-learn==1.5.2
+imbalanced-learn>=0.12.0
+skops>=0.9.0
+numpy>=1.24.0
+pandas>=2.0.0
+sqlalchemy<2.1

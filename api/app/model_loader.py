@@ -3,14 +3,15 @@ MLflow Model Registry loader with dynamic model switching.
 
 Loads machine-learning models from the MLflow Model Registry, caches them
 in memory for performance, and lets the API switch between models at
-runtime via query parameters. This is a core MLOps capability: models are
-versioned, staged (None -> Staging -> Production), and can be rolled back.
+runtime via the ``model`` query parameter. Models are versioned and staged
+in the registry; the registry notebook promotes one model to Production.
 """
 import logging
 import re
 
 import mlflow
 import mlflow.pyfunc
+import numpy as np
 from mlflow.exceptions import MlflowException
 from mlflow.tracking import MlflowClient
 
@@ -168,7 +169,7 @@ def get_native_model(pyfunc_model):
     native = getattr(pyfunc_model, "_model_impl", None)
     if native is None:
         return None
-    for attr in ("_model", "_flavor_backend", "model_impl"):
+    for attr in ("sklearn_model", "_model", "_flavor_backend", "model_impl"):
         candidate = getattr(native, attr, None)
         if candidate is not None and hasattr(candidate, "predict"):
             native = candidate
@@ -197,6 +198,28 @@ def get_prediction_confidence(pyfunc_model, features_array):
     except Exception as exc:
         logger.warning("Could not extract confidence from model: %s", exc)
         return None
+
+
+def get_feature_importance(pyfunc_model, feature_names: list[str], top_n: int = 5):
+    """
+    Return the model's global top-``top_n`` features as
+    ``[{"feature": name, "importance": share}, ...]`` (shares sum to 1 over all
+    features), or ``None`` if the estimator exposes neither
+    ``feature_importances_`` nor ``coef_`` (e.g. RBF SVM).
+    """
+    native = get_native_model(pyfunc_model)
+    estimator = native.steps[-1][1] if hasattr(native, "steps") else native
+    if hasattr(estimator, "feature_importances_"):
+        weights = np.abs(np.asarray(estimator.feature_importances_, dtype=float))
+    elif hasattr(estimator, "coef_"):
+        weights = np.abs(np.asarray(estimator.coef_, dtype=float)).ravel()
+    else:
+        return None
+    if weights.shape[0] != len(feature_names) or weights.sum() == 0:
+        return None
+    weights = weights / weights.sum()
+    top = np.argsort(weights)[::-1][:top_n]
+    return [{"feature": feature_names[i], "importance": float(weights[i])} for i in top]
 
 
 def list_available_models() -> list[dict]:

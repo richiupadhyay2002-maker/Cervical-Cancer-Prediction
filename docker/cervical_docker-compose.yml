@@ -1,142 +1,40 @@
-# ============================================================================
-# Docker Compose Configuration
-# ============================================================================
-# This file defines and orchestrates multiple Docker containers:
-# 1. FastAPI Prediction API (port 8000)
-# 2. MLflow UI (port 5000)
-# ============================================================================
+# Run from the repository root after `python run_pipeline.py`:
+#
+#   docker compose -f docker/cervical_docker-compose.yml up --build
+#
+# MLflow stores absolute artifact paths in notebooks/mlflow.db, so the project's
+# notebooks/ directory is mounted at the same absolute path inside the containers.
+# PROJECT_DIR defaults to the current directory (the repository root).
 
-# Define all services (containers)
 services:
-    # ==========================================================================
-  # Service 1: FastAPI Prediction API
-  # ==========================================================================
   api:
-    # Build the image from Dockerfile in project root (parent of docker/)
     build:
       context: ..
       dockerfile: docker/cervical_Dockerfile
-    
-    # Container name (easier to reference)
     container_name: cervical-cancer-api
-    
-    # Port mapping: host_port:container_port
     ports:
       - "8000:8000"
-    
-    # Volume mounts: persist data and share between containers
     volumes:
-      # Mount SQLite database (read-write) — corrected path to project-root notebooks/
-      - ../notebooks/mlflow.db:/app/mlflow.db
-      # Mount MLflow artifacts (read-write) — corrected path to project-root mlruns/
-      - ../mlruns:/app/mlruns
-    
-    # Environment variables — MODEL_NAME aligned with dissertation's recommended Gradient_Boosting
+      # read-write: MLflow writes registered_model_meta when loading a model
+      - ${PROJECT_DIR:-${PWD}}/notebooks:${PROJECT_DIR:-${PWD}}/notebooks
+      - ${PROJECT_DIR:-${PWD}}/processed_data/feature_columns.json:/app/feature_columns.json:ro
     environment:
-      - MLFLOW_TRACKING_URI=sqlite:///app/mlflow.db
-      - MLFLOW_ARTIFACT_ROOT=/app/mlruns
-      - MODEL_NAME=Gradient_Boosting
+      - MLFLOW_TRACKING_URI=sqlite:///${PROJECT_DIR:-${PWD}}/notebooks/mlflow.db
+      - MODEL_NAME=${MODEL_NAME:-Gradient_Boosting}
       - MODEL_STAGE=Production
       - FEATURE_COLUMNS_PATH=/app/feature_columns.json
-    
-    # Restart policy: automatically restart unless manually stopped
+      - RELOAD=false
     restart: unless-stopped
-    
-    # Health check (optional, for monitoring)
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    
-    # Resource limits (optional, adjust as needed)
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: '0.5'
-    #       memory: 512M
 
-  # ==========================================================================
-  # Service 2: MLflow UI
-  # ==========================================================================
   mlflow-ui:
-    # Use official Python image (no need to build)
     image: python:3.13-slim
-    
-    # Container name
-    container_name: mlflow-ui
-    
-    # Port mapping
+    container_name: cervical-cancer-mlflow-ui
     ports:
       - "5000:5000"
-    
-    # Volume mounts (share same database and artifacts as API)
     volumes:
-      - ../notebooks/mlflow.db:/app/mlflow.db
-      - ../mlruns:/app/mlruns
-    
-    # Working directory
-    working_dir: /app
-    
-    # Command to run MLflow UI
+      - ${PROJECT_DIR:-${PWD}}/notebooks:${PROJECT_DIR:-${PWD}}/notebooks
     command: >
-      bash -c "
-        pip install mlflow==2.22.5 &&
-        mlflow ui 
-        --backend-store-uri sqlite:///app/mlflow.db 
-        --host 0.0.0.0 
-        --port 5000
-      "
-    
-    # Environment variables
-    environment:
-      - MLFLOW_TRACKING_URI=sqlite:///app/mlflow.db
-    
-    # Restart policy
+      bash -c "pip install --no-cache-dir mlflow==2.22.5 'sqlalchemy<2.1' &&
+      mlflow ui --backend-store-uri sqlite:///${PROJECT_DIR:-${PWD}}/notebooks/mlflow.db
+      --host 0.0.0.0 --port 5000"
     restart: unless-stopped
-    
-    # Depends on: wait for API to be healthy (optional)
-    # depends_on:
-    #   api:
-    #     condition: service_healthy
-
-# ============================================================================
-# Volumes (named volumes for data persistence)
-# ============================================================================
-# Note: We're using bind mounts (../notebooks/mlflow.db, ../mlruns) instead of
-# named volumes so you can easily access the files on your host machine
-
-# ============================================================================
-# Networks
-# ============================================================================
-# Docker Compose creates a default network for all services
-# They can communicate using service names (api, mlflow-ui)
-
-# ============================================================================
-# Usage Instructions
-# ============================================================================
-#
-# Start all services:
-#   docker-compose up --build
-#
-# Start in background (detached):
-#   docker-compose up -d --build
-#
-# Stop all services:
-#   docker-compose down
-#
-# View logs:
-#   docker-compose logs -f
-#   docker-compose logs -f api        # API logs only
-#   docker-compose logs -f mlflow-ui  # MLflow UI logs only
-#
-# Rebuild after code changes:
-#   docker-compose up --build --force-recreate
-#
-# Access services:
-#   FastAPI Swagger UI: http://localhost:8000/docs
-#   MLflow UI:          http://localhost:5000
-#   API Health:         http://localhost:8000/health
-#
-# ============================================================================

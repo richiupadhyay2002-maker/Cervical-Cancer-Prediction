@@ -1,245 +1,147 @@
-# 🏥 Cervical Cancer Risk Prediction - MLOps Pipeline
+# Cervical Cancer Risk Prediction - MLOps Pipeline
 
-![Python](https://img.shields.io/badge/Python-3.13%2B-blue)
-![MLflow](https://img.shields.io/badge/MLflow-2.9%2B-orange)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.104%2B-green)
-![Docker](https://img.shields.io/badge/Docker-Ready-blue)
-![Scikit-learn](https://img.shields.io/badge/Scikit--learn-1.3%2B-red)
+[![API tests](https://github.com/richiupadhyay2002-maker/Cervical-Cancer-Prediction/actions/workflows/tests.yml/badge.svg)](https://github.com/richiupadhyay2002-maker/Cervical-Cancer-Prediction/actions/workflows/tests.yml)
+![Python](https://img.shields.io/badge/Python-3.13-blue)
+![MLflow](https://img.shields.io/badge/MLflow-2.22-orange)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-green)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-1.5.2-red)
 
-An end-to-end MLOps project for cervical cancer risk prediction with 9 supervised classification algorithms, leakage-safe hyperparameter tuning, and a FastAPI API.
+An end-to-end ML project for cervical cancer risk prediction (biopsy outcome) on the UCI/Kaggle *Risk Factors* dataset: leakage-safe tuning of 9 classifiers, MLflow experiment tracking and model registry, and a FastAPI service that serves the registered Production model.
 
 > **Research use only:** This project is for educational and research purposes. It is not a medical device and must not be used to diagnose, screen, or guide clinical decisions.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Cervical-Cancer-Prediction/
-│
-├── 📓 notebooks/                      # Jupyter notebooks
-│   ├── cervical_eda.ipynb             # Exploratory Data Analysis
-│   ├── cervical_02_feature_engineering_advanced.ipynb  # Feature Engineering (70/15/15 split)
-│   ├── cervical_03_model_training_advanced.ipynb  # 9 models, GridSearchCV + MLflow tracking
-│   ├── cervical_04_mlflow_model_registry.ipynb  # MLflow Model Registry (versioning + stages)
-│   ├── cervical_04_model_evaluation.ipynb  # Comprehensive evaluation + comparison
-│   └── [API-related notebooks: api_01 through api_08]
-│
-├── 📊 data/                           # All data files
-│   ├── raw/                           # Original dataset
-│   │   └── kag_risk_factors_cervical_cancer.csv
-│
-├── 📂 processed_data/                 # Generated locally by the pipeline (not committed)
-│
-├── 🤖 models/                         # Trained model files
-│   ├── *_tuned.pkl                    # 9 tuned model files
-│   └── model_comparison_advanced.csv  # Model comparison report
-│
-├── 📦 notebooks/mlflow.db, mlruns/    # Generated locally; ignored by Git
-│
-├── 🚀 api/                            # FastAPI application
-│   ├── app/                           # API source code
-│   │   ├── main.py                    # FastAPI application entry point
-│   │   ├── config.py                  # Configuration
-│   │   ├── model_loader.py            # Dynamic model loading (MLflow, caching, registry listing)
-│   │   ├── models.py                  # Pydantic schemas (35-field PredictionInput)
-│   │   ├── preprocessor.py            # Input preprocessing (np.nan defaults, field normalization)
-│   │   ├── report_generator.py        # Clinical report generation
-│   │   ├── templates/                 # Report templates
-│   │   │   └── risk_report_template.md
-│   │   └── routers/                   # API endpoints
-│   │       ├── health.py              # Health check endpoint
-│   │       ├── predict.py             # Prediction endpoint
-│   │       └── report.py              # Clinical report endpoint
-│   ├── run.py                         # Start the API server
-│   ├── requirements.txt               # Python dependencies
-│   └── predict_example.py             # Example prediction script
-│
-├── 📝 docs/                           # Documentation
-│   ├── cervical_README.md             # This file (root README.md also exists)
-│   ├── cervical_PROJECT_SUMMARY.md    # Project overview
-│   ├── README_CERVICAL_CANCER_API.md  # API documentation
-│   ├── cervical_DOCKER_GUIDE.md       # Docker deployment guide
-│   └── cervical_04_model_evaluation_report.md  # Detailed evaluation report
-│
-├── 🐳 docker/                         # Docker files
-│   ├── cervical_Dockerfile            # Container recipe
-│   ├── cervical_docker-compose.yml    # Multi-container setup
-│   └── cervical_.dockerignore         # Build exclusions
-│
-├── 📈 outputs/                        # Visualizations and reports
-│   └── evaluation_outputs/            # Generated evaluation outputs
-│
-└── 📋 config/                         # Configuration files
+├── data/raw/kag_risk_factors_cervical_cancer.csv   # 858 rows x 36 columns (target: Biopsy, 55 positive / 803 negative)
+├── notebooks/
+│   ├── cervical_eda.ipynb                          # Exploratory data analysis (not part of run_pipeline.py)
+│   ├── cervical_02_feature_engineering_advanced.ipynb  # Cleaning + 70/15/15 stratified split
+│   ├── cervical_03_model_training_advanced.ipynb   # 9 models, GridSearchCV, MLflow run logging
+│   ├── cervical_04_model_evaluation.ipynb          # Train/validation/test comparison + plots
+│   ├── cervical_04_mlflow_model_registry.ipynb     # Registers all models, promotes one to Production
+│   └── api_01 ... api_08_*.ipynb                   # Step-by-step walkthrough of the API code
+├── models/                       # Committed tuned pipelines (*_tuned.pkl) + model_comparison_advanced.csv
+├── evaluation_outputs/           # Committed evaluation plots and comprehensive_comparison.csv
+├── processed_data/               # Generated by feature engineering (gitignored)
+├── notebooks/mlflow.db, mlruns/  # MLflow tracking + registry, generated by the pipeline (gitignored)
+├── api/
+│   ├── app/                      # FastAPI app: config, schemas, preprocessor, model loader, routers, report generator
+│   ├── tests/                    # pytest suite (runs without MLflow artifacts)
+│   ├── demo_prediction.json      # Example 35-feature request body
+│   ├── requirements.txt
+│   └── run.py                    # Starts Uvicorn
+├── docker/
+│   ├── cervical_Dockerfile       # Single-stage API image
+│   └── cervical_docker-compose.yml  # API + MLflow UI
+├── run_feature_engineering.py    # Script version of the feature-engineering notebook
+└── run_pipeline.py               # Runs feature engineering -> training -> evaluation -> registry
 ```
 
 ---
 
-## 🔄 Pipeline Workflow
+## Pipeline
 
 ```
-cervical_eda.ipynb ──→ cervical_02_feature_engineering_advanced.ipynb ──→ cervical_03_model_training_advanced.ipynb ──→ cervical_04_mlflow_model_registry.ipynb ──→ cervical_04_model_evaluation.ipynb
-     │                        │                                         │                          │                                        │
-     ▼                        ▼                                         ▼                          ▼                                        ▼
-  EDA &            70/15/15 Stratified Split                         9 Models + GridSearchCV       MLflow Registry                    Final Evaluation &
-Visualizations        StandardScaler, SMOTE (CV-fold)                  MLflow Run Logging          Versioning + Stage Promotion    Best Model Selection
+02 feature engineering -> 03 training -> 04 evaluation -> 04 registry -> FastAPI
+ 70/15/15 stratified      9 models, GridSearchCV     train/val/test      register 9 models,     serves
+ split                    (5x3 repeated stratified   metrics + plots     promote the selected   models:/<name>/Production
+                          CV), SMOTE inside folds                        model to Production
 ```
 
-### Data Split
-| Dataset | Size | Percentage | Usage |
-|---------|------|------------|-------|
-| **Training** | 600 samples | 70% | Model training, leakage-safe SMOTE (in CV folds) |
-| **Validation** | 129 samples | 15% | Hyperparameter tuning + model selection |
-| **Test** | 129 samples | 15% | Final evaluation only |
+| Split | Size | Usage |
+|-------|------|-------|
+| Training | 600 | GridSearchCV with imputation, scaling and SMOTE fitted inside each CV fold |
+| Validation | 129 | Model selection |
+| Test | 129 | Reported for final assessment only; never used for selection |
+
+**Model selection rule** (shared by the training, evaluation and registry notebooks): highest validation F1 among models whose train-validation F1 gap is at most 0.05, ties broken by validation PR-AUC.
+
+All MLflow runs and the model registry live in a single SQLite database, `notebooks/mlflow.db` (experiments `Cervical_Cancer_Model_Training_Leakage_Safe` and `Cervical_Cancer_Registry`).
 
 ---
 
-## 🚀 Quick Start
-
-### 1. Run the Pipeline
+## Quick Start
 
 ```bash
-# From the repository root
-cd Cervical-Cancer-Prediction
+python -m venv .venv && source .venv/bin/activate
+pip install -r api/requirements.txt jupyter nbconvert ipykernel matplotlib seaborn
 
-# Execute notebooks in order
-jupyter notebook notebooks/cervical_eda.ipynb
-jupyter notebook notebooks/cervical_02_feature_engineering_advanced.ipynb
-jupyter notebook notebooks/cervical_03_model_training_advanced.ipynb
-jupyter notebook notebooks/cervical_04_mlflow_model_registry.ipynb
-jupyter notebook notebooks/cervical_04_model_evaluation.ipynb
+# 1. Run the pipeline (feature engineering, training, evaluation, registry)
+python run_pipeline.py --yes
+
+# 2. Start the API (http://localhost:8000/docs)
+cd api && python run.py
+
+# 3. Optional: MLflow UI (http://localhost:5000)
+cd notebooks && mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 ```
 
-### 2. Start the API
+Re-running training overwrites the committed `models/*.pkl` and `evaluation_outputs/*` files.
+
+### API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Service status, loaded model name/version/stage, feature count |
+| GET | `/models` | Models in the MLflow registry with their latest version and stage |
+| POST | `/predict` | Binary prediction + positive-class probability (threshold 0.5) |
+| POST | `/predict/report` | Prediction plus a Markdown report of the patient's recorded risk factors and the model's global top features (for models exposing `feature_importances_` or `coef_`) |
+
+All 35 features are sent with their original dataset column names; unknown fields and out-of-range values are rejected with HTTP 422. Use `?model=<registered name>` to query a non-default model.
 
 ```bash
-# From the repository root
-cd api
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the server
-python run.py
+curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d @api/demo_prediction.json
 ```
 
-### 3. View MLflow UI
+Configuration (`api/app/config.py`, overridable via environment variables or `api/.env`): `MLFLOW_TRACKING_URI`, `MODEL_NAME` (default `Gradient_Boosting`), `MODEL_STAGE` (default `Production`), `FEATURE_COLUMNS_PATH`, `PREDICTION_THRESHOLD`, `CORS_ORIGINS`, `RELOAD`. If the configured model has no version in `MODEL_STAGE`, the API logs a warning, serves the latest version instead, and reports the actual stage in `/health`.
+
+### Tests
 
 ```bash
-# From the API folder, navigate to notebooks (where mlflow.db is generated)
-cd ../notebooks
-
-# Start MLflow UI after running the model registry notebook
-mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+cd api && pip install pytest httpx && python -m pytest -q tests
 ```
 
-### 4. Access Services
+The tests replace the registry model with a small scikit-learn pipeline, so they run in CI without the generated MLflow artifacts.
 
-- **FastAPI Docs**: http://localhost:8000/docs
-- **MLflow UI**: http://localhost:5000
+### Docker
 
----
-
-## 🎯 Model Performance
-
-### All 9 Models (Ranked by Validation F1-Score, Overfitting-Gap Check)
-
-| Model | Train F1 | Val F1 | Test F1 | Train–Val Gap | Verdict |
-|-------|----------|--------|---------|---------------|---------|
-| **Gradient_Boosting** | 0.7640 | 0.7619 | 0.6316 | 0.0021 | ✅ Recommended |
-| **Hist_Gradient_Boosting** | 0.7640 | 0.7273 | 0.6316 | 0.0368 | ✅ Recommended |
-| **SGD_ElasticNet** | 0.6667 | 0.6957 | 0.6000 | −0.0290 | Within gap (underfit-leaning) |
-| **Logistic_ElasticNet** | 0.7579 | 0.6957 | 0.6316 | 0.0622 | ⚠️ Caution |
-| **Linear_SVM** | 0.7579 | 0.6957 | 0.6316 | 0.0622 | ⚠️ Caution |
-| **Logistic_Regression** | 0.7660 | 0.6957 | 0.6316 | 0.0703 | ⚠️ Caution |
-| **LDA_Shrinkage** | 0.7660 | 0.6957 | 0.6316 | 0.0703 | ⚠️ Caution |
-| **RBF_SVM** | 0.8000 | 0.6957 | 0.6667 | 0.1043 | ⚠️ Highest test F1, most overfit |
-| **Random_Forest** | 0.8140 | 0.6316 | 0.6316 | 0.1824 | ❌ Most overfit |
-
-### Best Model: Gradient_Boosting
-- **Test F1-Score**: 0.6316
-- **Test ROC-AUC**: 0.8543
-- **Validation F1-Score**: 0.7619
-- **Overfitting Gap**: 0.0021 (minimal)
-- **Test Recall**: 0.75 (6 of 8 true positive cases identified)
-- **Status**: Recommended for further research evaluation (selected using validation-based model selection and an overfitting-gap check)
-
----
-
-## 🐳 Docker Deployment
+The image contains only the API; the registry and `processed_data/feature_columns.json` are mounted from the host, so run the pipeline first:
 
 ```bash
-# From the repository root
-cd docker
-
-# Build and start containers after running the model pipeline
-docker-compose -f cervical_docker-compose.yml up --build
+python run_pipeline.py --yes
+docker compose -f docker/cervical_docker-compose.yml up --build   # run from the repository root
 ```
 
----
-
-## 📊 Key Features
-
-### ✅ Leakage-Safe Pipeline & Data Split
-- **70/15/15 stratified split** (600 train / 129 val / 129 test)
-- **SMOTE embedded in cross-validation folds** (not applied to the full dataset)
-- **Validation set** for hyperparameter tuning and model selection
-- **Test set** for final evaluation only
-
-### ✅ Hyperparameter Tuning
-- GridSearchCV with 5×3 repeated stratified cross-validation (15 folds)
-- All 9 algorithms tuned independently
-- Best parameters selected based on validation F1 and train–validation gap (overfitting check)
-
-### ✅ Overfitting Detection
-- Compares Train vs Test F1-Score
-- Threshold: >0.05 indicates potential overfitting
-- Detailed analysis for each model
-
-### ✅ Comprehensive Evaluation
-- Models: Accuracy, Precision, Recall, F1-Score, ROC-AUC
-- Visualizations: F1 comparison, overfitting analysis, confusion matrices
-- Final recommendations for further research evaluation
-
-### ✅ MLflow Model Registry
-- **Experiment**: `Cervical_Cancer_Model_Training_Leakage_Safe`
-- **Backend**: SQLite (`mlflow.db`) for tracking and model registry
-- **9 models registered** via `mlflow.register_model()` with version history
-- **Stage management**: None → Staging → Production (via `client.transition_model_version_stage()`)
-- **Production models**: Gradient_Boosting (recommended) and RBF_SVM
-- **Registry-based loading**: `models:/Gradient_Boosting/Production`
-- **Dynamic model listing**: `MlflowClient().search_registered_models()`
-- **MLflow UI**: http://localhost:5000
+API on http://localhost:8000, MLflow UI on http://localhost:5000. MLflow records absolute artifact paths, so compose mounts `notebooks/` at the same absolute path inside the containers (`PROJECT_DIR`, defaulting to the current directory).
 
 ---
 
-## 📁 File Naming Convention
+## Model Performance
 
-| Prefix | Purpose |
-|--------|---------|
-| `01_` | Exploratory Data Analysis |
-| `02_` | Feature Engineering |
-| `03_` | Model Training & Selection |
-| `04_` | Model Evaluation & Registry |
+Committed results (`models/model_comparison_advanced.csv`), ranked by validation F1:
 
----
+| Model | Train F1 | Val F1 | Test F1 | Train-Val Gap | Within 0.05 gap |
+|-------|----------|--------|---------|---------------|-----------------|
+| **Gradient_Boosting** | 0.7640 | 0.7619 | 0.6316 | 0.0021 | Yes (selected) |
+| Hist_Gradient_Boosting | 0.7640 | 0.7273 | 0.6316 | 0.0368 | Yes |
+| SGD_ElasticNet | 0.6667 | 0.6957 | 0.6000 | -0.0290 | Yes |
+| Logistic_ElasticNet | 0.7579 | 0.6957 | 0.6316 | 0.0622 | No |
+| Linear_SVM | 0.7579 | 0.6957 | 0.6316 | 0.0622 | No |
+| Logistic_Regression | 0.7660 | 0.6957 | 0.6316 | 0.0703 | No |
+| LDA_Shrinkage | 0.7660 | 0.6957 | 0.6316 | 0.0703 | No |
+| RBF_SVM | 0.8000 | 0.6957 | 0.6667 | 0.1043 | No |
+| Random_Forest | 0.8140 | 0.6316 | 0.6316 | 0.1824 | No |
 
-## 🛠️ Technologies Used
+**Selected model: Gradient_Boosting** - validation F1 0.7619, test F1 0.6316, test ROC-AUC 0.8543, test recall 0.75 (6 of 8 positive test cases).
 
-- **Python 3.13**: Core programming language
-- **Scikit-learn**: Machine learning models
-- **MLflow**: Experiment tracking and model registry
-- **FastAPI**: REST API
-- **Docker**: Containerization
-- **Pandas/NumPy**: Data processing
-- **Matplotlib/Seaborn**: Visualizations
-- **SMOTE**: Class imbalance handling
+Limitations: the test set contains only 8 positive cases, so metrics have wide uncertainty; RBF_SVM has the highest test F1 but is not selected because test metrics are not used for selection. On re-runs most models reproduce these numbers exactly, but LDA_Shrinkage and SGD_ElasticNet can differ slightly across environments.
 
 ---
 
-## 📧 Contact
+## Technologies
 
-For questions or issues, refer to:
-- `docs/README_CERVICAL_CANCER_API.md` - API documentation
-- `docs/cervical_DOCKER_GUIDE.md` - Docker deployment guide
-- `docs/cervical_04_model_evaluation_report.md` - Detailed evaluation report
+Python 3.13 · pandas / NumPy · scikit-learn · imbalanced-learn (SMOTE) · MLflow (tracking + registry, SQLite backend) · FastAPI / Pydantic · Matplotlib / Seaborn · Docker

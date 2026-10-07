@@ -8,8 +8,8 @@ import logging
 from fastapi import APIRouter, HTTPException, Query
 
 from app.models import PredictionInput, ReportOutput, ErrorResponse
-from app.model_loader import get_model, get_prediction_confidence
-from app.preprocessor import preprocess
+from app.model_loader import get_feature_importance, get_model, get_prediction_confidence
+from app.preprocessor import load_feature_columns, preprocess
 from app.config import settings
 from app.report_generator import generate_risk_report
 
@@ -29,8 +29,9 @@ router = APIRouter(tags=["Report"])
     description=(
         "Submit 35 patient features and receive a binary prediction "
         "(0 = Negative, 1 = Positive) with confidence score, plus a "
-        "full Markdown clinical decision support report explaining "
-        "the risk factors, model explanation, and recommendations."
+        "Markdown decision-support report listing the patient's recorded risk "
+        "factors, the model's global top features (when the model exposes "
+        "feature importances or coefficients), and general recommendations."
     ),
 )
 async def predict_with_report(
@@ -38,7 +39,7 @@ async def predict_with_report(
     model: str = Query(
         default=None,
         description="Name of the model to use for prediction. If not specified, uses the default model.",
-        examples=["Linear SVM", "AdaBoost", "Random Forest"]
+        examples=["Gradient_Boosting", "RBF_SVM", "Random_Forest"]
     )
 ):
     """
@@ -100,7 +101,7 @@ async def predict_with_report(
             prediction=final_class,
             probability=prob_for_report,
             patient_features=raw_features,
-            feature_importance=None,  # Feature importance not available from loaded model
+            feature_importance=get_feature_importance(pred_model, load_feature_columns()),
             model_name=model_name,
         )
 
@@ -117,6 +118,8 @@ async def predict_with_report(
             report_markdown=report_markdown,
         )
 
+    except HTTPException:
+        raise
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except RuntimeError as exc:

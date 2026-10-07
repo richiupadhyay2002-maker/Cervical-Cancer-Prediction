@@ -82,7 +82,7 @@ def _format_feature_importance(feature_importance) -> str:
     Expected format: [{"feature": "Age", "importance": 0.25}, ...]
     """
     if not feature_importance:
-        return "- Feature importance data is not available for this model."
+        return "- Feature importance is not available for this model type."
 
     lines = []
     for item in feature_importance:

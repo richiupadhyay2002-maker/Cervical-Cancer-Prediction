@@ -24,9 +24,9 @@ The following patient characteristics were identified as contributing factors:
 
 This prediction is based on patterns learned from historical cervical cancer screening data. The model analyzes relationships between patient demographics, lifestyle factors, medical history, and known cervical cancer risk indicators to generate the assessment.
 
-### Top Features Influencing This Prediction
+### Top Model Features (Global)
 
-The following features had the greatest influence on the model's decision:
+Global feature importance of the selected model (not specific to this patient's prediction):
 
 {feature_importance_list}
 

@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # --- Default model served by the API -----------------------------------
     # Use the exact registered MLflow model name, not the display label.
     MODEL_NAME: str = "Gradient_Boosting"
-    MODEL_STAGE: str = "Production"  # Gradient_Boosting v4 promoted to Production
+    MODEL_STAGE: str = "Production"
 
     # --- Feature columns used during training (order matters!) -------------
     FEATURE_COLUMNS_PATH: str = str(
@@ -41,7 +41,10 @@ class Settings(BaseSettings):
     # --- Uvicorn server settings --------------------------------------------
     HOST: str = "0.0.0.0"
     PORT: int = 8000
-    RELOAD: bool = True
+    RELOAD: bool = False
+
+    # --- CORS: comma-separated list of allowed origins --------------------
+    CORS_ORIGINS: str = "*"
 
     class Config:
         env_file = ".env"

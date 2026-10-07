@@ -1,67 +1,24 @@
-# ============================================================================
-# Dockerfile for Cervical Cancer Risk Prediction API
-# ============================================================================
-# This Dockerfile creates a container image that includes:
-# - Python 3.13 runtime
-# - All dependencies from requirements.txt
-# - Your FastAPI application code
-# - MLflow model registry access
-# ============================================================================
-
-# Step 1: Use official Python image as base
-# "slim" variant is smaller than full Python image
+# Cervical Cancer Risk Prediction API (single-stage image).
+# The image contains only the API code. The MLflow registry (notebooks/mlflow.db,
+# notebooks/mlruns/) and processed_data/feature_columns.json are produced by
+# `python run_pipeline.py` and mounted at runtime by docker/cervical_docker-compose.yml.
 FROM python:3.13-slim
 
-# Step 2: Set environment variables
-# PYTHONDONTWRITEBYTECODE: Prevents Python from writing .pyc files
-# PYTHONUNBUFFERED: Ensures Python output is sent straight to terminal
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    RELOAD=false
 
-# Step 3: Set working directory inside the container
-# All subsequent commands will run from this directory
 WORKDIR /app
 
-# Step 4: Install system dependencies
-# build-essential: Required for compiling some Python packages
-# --no-install-recommends: Reduces image size by skipping optional packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
-
-# Step 5: Copy requirements file
-# This is done BEFORE copying the rest of the code to leverage Docker layer caching
-# If requirements.txt doesn't change, Docker reuses this layer (faster builds)
 COPY api/requirements.txt requirements.txt
-
-# Step 6: Install Python dependencies
-# --no-cache-dir: Reduces image size by not storing pip cache
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Step 7: Copy application code
-# Copy the entire app directory and the run.py entry point
 COPY api/app/ ./app/
 COPY api/run.py run.py
 
-# Step 8: Copy data files needed at runtime
-# These files are required for the app to function
-COPY processed_data/feature_columns.json feature_columns.json
-COPY notebooks/mlflow.db mlflow.db
-
-# Step 9: Create directory for MLflow artifacts
-# This ensures the directory exists even if mlruns/ is mounted as a volume
-RUN mkdir -p /app/mlruns
-
-# Step 10: Expose the port the app runs on
-# This is documentation - actual port mapping happens at runtime
 EXPOSE 8000
 
-# Step 11: Health check
-# Docker will periodically check if the app is healthy
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
-# Step 12: Command to run the application
-# This is the default command when the container starts
 CMD ["python", "run.py"]

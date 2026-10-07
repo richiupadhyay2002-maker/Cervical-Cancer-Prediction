@@ -38,7 +38,7 @@ async def predict_with_report(
     model: str = Query(
         default=None,
         description="Name of the model to use for prediction. If not specified, uses the default model.",
-        examples=["Linear SVM", "AdaBoost", "Random Forest"]
+        examples=["Linear_SVM", "RBF_SVM", "Random_Forest"]
     )
 ):
     """
@@ -117,6 +117,8 @@ async def predict_with_report(
             report_markdown=report_markdown,
         )
 
+    except HTTPException:
+        raise
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except RuntimeError as exc:

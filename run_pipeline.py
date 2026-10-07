@@ -24,6 +24,11 @@ PIPELINE = [
         "name": "MLflow Model Registry",
         "file": "cervical_04_mlflow_model_registry.ipynb",
         "description": "Registers models in MLflow"
+    },
+    {
+        "name": "Model Evaluation",
+        "file": "cervical_04_model_evaluation.ipynb",
+        "description": "Evaluates all models and writes evaluation_outputs/"
     }
 ]
 
@@ -100,9 +105,9 @@ def main():
     print("✅ ENTIRE PIPELINE COMPLETED SUCCESSFULLY")
     print("="*70)
     print("\nNext steps:")
-    print("  1. View MLflow UI: mlflow ui --backend-store-uri sqlite:///mlflow.db")
-    print("  2. Check models in: cervical-cancer-mlops/models/")
-    print("  3. Start API: python run.py")
+    print("  1. View MLflow UI: mlflow ui --backend-store-uri sqlite:///notebooks/mlflow.db")
+    print("  2. Check models in: models/")
+    print("  3. Start API: cd api && python run.py")
 
 if __name__ == "__main__":
     main()

@@ -25,7 +25,7 @@ A **complete, production-ready MLOps pipeline** for cervical cancer risk predict
 ### MLflow Model Registry
 - **URL**: http://localhost:5000
 - **Status**: ✅ Running
-- **Models**: 9 registered models in MLflow Model Registry (RBF_SVM + Gradient_Boosting promoted to Production)
+- **Models**: 9 registered models in MLflow Model Registry (Gradient_Boosting promoted to Production; the rest remain at stage `None`)
 
 ---
 
@@ -83,17 +83,16 @@ A **complete, production-ready MLOps pipeline** for cervical cancer risk predict
 
 ### 3. Docker Configuration
 
-- `Dockerfile` - Multi-stage build for API
-- `docker-compose.yml` - Multi-container orchestration
-- `.dockerignore` - Build optimization
-- `cervical_DOCKER_GUIDE.md` - Complete Docker tutorial
+- `cervical_Dockerfile` - Single-stage API image
+- `cervical_docker-compose.yml` - Multi-container orchestration (API + MLflow UI)
+- `cervical_.dockerignore` - Build optimization
 
 ### 4. Documentation
 
-- `cervical_README.md` - Professional README with badges, tables, examples ⭐
-- `README_CERVICAL_CANCER_API.md` - Detailed API guide
-- `cervical_DOCKER_GUIDE.md` - Docker setup and usage
-- `predict_example.py` - Working examples
+- `README.md` - Project README with badges, tables, examples ⭐
+- `docs/cervical_README.md` - Detailed API guide
+- `docs/cervical_PROJECT_SUMMARY.md` - This overview
+- `api/demo_prediction.json` - Example 35-feature request payload
 
 ---
 
@@ -102,7 +101,7 @@ A **complete, production-ready MLOps pipeline** for cervical cancer risk predict
 | Model | F1-Score | ROC-AUC | Status |
 |-------|----------|---------|--------|
 | **Gradient_Boosting** | 0.6316 | 0.8543 | Production (recommended) |
-| **RBF_SVM** | 0.6667 | 0.8450 | Production (highest test F1) |
+| **RBF_SVM** | 0.6667 | 0.8450 | Registered (highest test F1) |
 | **LDA_Shrinkage** | 0.6316 | 0.9029 | Registered (highest ROC-AUC) |
 | **Hist_Gradient_Boosting** | 0.6316 | 0.8667 | Registered |
 | **Random_Forest** | 0.6316 | 0.8554 | Registered |
@@ -245,7 +244,8 @@ jupyter notebook notebooks/cervical_04_model_evaluation.ipynb
 
 ### Docker Deployment
 ```bash
-docker-compose up --build
+cd docker
+docker-compose -f cervical_docker-compose.yml up --build
 ```
 
 ---

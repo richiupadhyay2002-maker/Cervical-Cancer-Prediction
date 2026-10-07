@@ -66,7 +66,7 @@ async def predict(
     model: str = Query(
         default=None,
         description="Name of the model to use for prediction. If not specified, uses the default model.",
-        examples=["Linear SVM", "AdaBoost", "Random Forest"]
+        examples=["Linear_SVM", "RBF_SVM", "Random_Forest"]
     )
 ):
     """
@@ -75,7 +75,7 @@ async def predict(
     Predicts cervical cancer risk using the specified model.
     
     Query Parameters:
-    - model: (optional) Name of the model to use. Examples: Linear_SVM, AdaBoost, Bagging, etc.
+    - model: (optional) Name of the model to use. Examples: Linear_SVM, RBF_SVM, Random_Forest, etc.
     
     Request Body:
     - All 35 patient features (see PredictionInput schema)
@@ -130,6 +130,8 @@ async def predict(
             threshold=settings.PREDICTION_THRESHOLD,
         )
     
+    except HTTPException:
+        raise
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except RuntimeError as exc:

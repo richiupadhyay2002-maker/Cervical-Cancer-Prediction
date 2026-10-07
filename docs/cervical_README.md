@@ -1,80 +1,33 @@
-# 🏥 Cervical Cancer Risk Prediction API
+# 🏥 Cervical Cancer Risk Prediction API — Guide
 
 <div align="center">
 
-![Python](https://img.shields.io/badge/Python-3.11+-blue?style=for-the-badge&logo=python)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.139.0-green?style=for-the-badge&logo=fastapi)
-![MLflow](https://img.shields.io/badge/MLflow-3.14.0-orange?style=for-the-badge&logo=mlflow)
+![Python](https://img.shields.io/badge/Python-3.13+-blue?style=for-the-badge&logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green?style=for-the-badge&logo=fastapi)
+![MLflow](https://img.shields.io/badge/MLflow-2.22-orange?style=for-the-badge&logo=mlflow)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker)
-![Scikit-learn](https://img.shields.io/badge/Scikit--learn-1.9.0-yellow?style=for-the-badge&logo=scikit-learn)
+![Scikit-learn](https://img.shields.io/badge/Scikit--learn-1.5-yellow?style=for-the-badge&logo=scikit-learn)
 
-**A production-ready MLOps pipeline for cervical cancer risk prediction with 8 machine learning models**
-
-[Features](#features) • [Quick Start](#quick-start) • [API Documentation](#api-documentation) • [Models](#available-models) • [Docker](#docker-deployment) • [Project Structure](#project-structure)
+**A FastAPI service serving 9 registered MLflow models for cervical cancer risk prediction**
 
 </div>
 
 ---
 
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [API Documentation](#api-documentation)
-- [Available Models](#available-models)
-- [Docker Deployment](#docker-deployment)
-- [Project Structure](#project-structure)
-- [Examples](#examples)
-- [Results](#results)
-- [Contributing](#contributing)
-
----
-
 ## 🎯 Overview
 
-This project implements a complete **MLOps pipeline** for cervical cancer risk prediction using machine learning. It includes:
+This service exposes a trained, versioned MLflow Model Registry behind a FastAPI
+REST API. It accepts 35 patient features and returns a binary risk assessment
+with a confidence score and an optional Markdown clinical report.
 
-- **8 trained ML models** registered in MLflow Model Registry
-- **REST API** with dynamic model selection
-- **Interactive Swagger UI** for testing
-- **Docker containerization** for easy deployment
-- **Comprehensive EDA and feature engineering**
-- **Production-ready** with error handling and validation
+- **9 registered models** selectable per request
+- **Input validation** on all 35 features (Pydantic v2)
+- **Model caching** for fast repeat predictions
+- **Clinical report generation** via a Markdown template
+- **Docker** packaging for the API + MLflow UI
 
-### 🎓 Use Case
-
-Healthcare professionals can use this API to:
-- Assess cervical cancer risk based on patient data
-- Get predictions from multiple ML models
-- Compare different model predictions
-- Make informed decisions about further testing
-
----
-
-## ✨ Features
-
-### 🤖 Machine Learning
-- ✅ **8 Different Models** - Logistic Regression, SVM (Linear/RBF/Polynomial), Bagging, Random Forest, AdaBoost, Gradient Boosting
-- ✅ **MLflow Integration** - All models tracked and registered
-- ✅ **Model Versioning** - Easy rollback and A/B testing
-- ✅ **Dynamic Selection** - Choose model per request via query parameter
-
-### 🔌 API Features
-- ✅ **RESTful API** - FastAPI with async support
-- ✅ **Input Validation** - Pydantic schemas with 29 features
-- ✅ **Confidence Scores** - Probability estimates for predictions
-- ✅ **Error Handling** - Clear, actionable error messages
-- ✅ **CORS Enabled** - Call from any frontend
-- ✅ **Health Checks** - Monitor service status
-- ✅ **Model Caching** - Fast predictions after first load
-
-### 📊 Data & MLops
-- ✅ **EDA Pipeline** - Comprehensive exploratory analysis
-- ✅ **Feature Engineering** - SMOTE, scaling, preprocessing
-- ✅ **Model Registry** - 8 models in Production stage
-- ✅ **Experiment Tracking** - MLflow for metrics and parameters
-- ✅ **Docker Ready** - One-command deployment
+> **Research use only.** Not a medical device; must not be used for diagnosis or
+> screening.
 
 ---
 
@@ -82,496 +35,238 @@ Healthcare professionals can use this API to:
 
 ### Prerequisites
 
-- Python 3.11+
-- pip package manager
-- (Optional) Docker Desktop for containerization
+- Python 3.13+
+- The pipeline has been run once (so `notebooks/mlflow.db` and
+  `processed_data/feature_columns.json` exist)
 
-### Installation
+### Install and run
 
 ```bash
-# Clone the repository
-cd "risk factor"
-
-# Install dependencies
+cd api
 pip install -r requirements.txt
-```
-
-### Run the API
-
-```bash
-# Start the FastAPI server
 python run.py
 ```
 
-**Access the API:**
-- 🌐 **Swagger UI**: http://localhost:8000/docs
-- 🔍 **Health Check**: http://localhost:8000/health
-- 📋 **Models List**: http://localhost:8000/models
-- 📊 **MLflow UI**: http://localhost:5000
+### Access
+
+- **Swagger UI:** http://localhost:8000/docs
+- **ReDoc:** http://localhost:8000/redoc
+- **Health:** http://localhost:8000/health
+- **Models:** http://localhost:8000/models
+
+### Docker
+
+```bash
+cd docker
+docker-compose -f cervical_docker-compose.yml up --build
+# API: http://localhost:8000/docs   MLflow UI: http://localhost:5000
+```
 
 ---
 
-## 📖 API Documentation
+## 📖 API Reference
 
-### 1. Health Check
+### 1. Health check — `GET /health`
 
-**Endpoint:** `GET /health`
+Returns service status plus metadata about the loaded model.
 
-**Description:** Check if the service is running and get model information
-
-**Response:**
 ```json
 {
   "status": "ok",
-  "model_name": "Linear_SVM",
+  "model_name": "Gradient_Boosting",
   "model_version": 1,
   "model_stage": "Production",
-  "features_count": 29
+  "features_count": 35
 }
 ```
 
-### 2. List Available Models
+### 2. List models — `GET /models`
 
-**Endpoint:** `GET /models`
-
-**Description:** Get all registered models available for prediction
-
-**Response:**
 ```json
 {
   "models": [
-    {
-      "name": "Linear_SVM",
-      "version": 1,
-      "stage": "Production",
-      "description": "..."
-    },
-    ...
+    {"name": "Gradient_Boosting", "version": 1, "stage": "Production", "description": "..."},
+    {"name": "RBF_SVM", "version": 1, "stage": "None", "description": "..."}
   ],
-  "default_model": "Linear_SVM",
+  "default_model": "Gradient_Boosting",
   "total": 9
 }
 ```
 
-### 3. Make Prediction
+### 3. Predict — `POST /predict`
 
-**Endpoint:** `POST /predict`
+Optional query parameter `model` selects a registered model (default:
+`Gradient_Boosting`). Request body = the 35 patient features
+(see `api/demo_prediction.json` for a complete payload).
 
-**Query Parameters:**
-- `model` (optional): Name of the model to use (e.g., `AdaBoost`, `Random_Forest`)
-
-**Request Body:**
-```json
-{
-  "age": 25,
-  "number_of_sexual_partners": 1,
-  "first_sexual_intercourse": 22,
-  "num_of_pregnancies": 0,
-  "smokes_years": 0,
-  "smokes_packs_per_year": 0,
-  "hormonal_contraceptives_years": 0,
-  "iud_years": 0,
-  "stds_number": 0,
-  "stds_condylomatosis": 0,
-  "stds_cervical_condylomatosis": 0,
-  "stds_vaginal_condylomatosis": 0,
-  "stds_vulvo_perineal_condylomatosis": 0,
-  "stds_syphilis": 0,
-  "stds_pelvic_inflammatory_disease": 0,
-  "stds_genital_herpes": 0,
-  "stds_molluscum_contagiosum": 0,
-  "stds_aids": 0,
-  "stds_hiv": 0,
-  "stds_hepatitis_b": 0,
-  "stds_hpv": 0,
-  "stds_number_of_diagnosis": 0,
-  "dx_cancer": 0,
-  "dx_cin": 0,
-  "dx_hpv": 0,
-  "dx": 0,
-  "hinselmann": 0,
-  "schiller": 0,
-  "citology": 0
-}
+```bash
+curl -X POST "http://localhost:8000/predict?model=Gradient_Boosting" \
+  -H "Content-Type: application/json" \
+  -d @demo_prediction.json
 ```
 
-**Response:**
 ```json
 {
-  "model_name": "AdaBoost",
+  "model_name": "Gradient_Boosting",
   "model_version": 1,
   "prediction": 1,
   "prediction_label": "Positive",
-  "confidence": 0.594546,
+  "confidence": 0.5945,
   "threshold": 0.5
 }
 ```
 
-**Response Fields:**
-- `prediction`: 0 (Negative/low risk) or 1 (Positive/high risk)
-- `prediction_label`: Human-readable prediction
-- `confidence`: Probability of being Positive (0-1)
-- `model_name`: Which model made the prediction
-- `model_version`: Version of the model
+### 4. Predict + report — `POST /predict/report`
+
+Same request body; adds `risk_level` and a Markdown `report_markdown` report.
+
+```json
+{
+  "model_name": "Gradient_Boosting",
+  "model_version": 1,
+  "prediction": 1,
+  "prediction_label": "Positive",
+  "confidence": 0.5945,
+  "risk_level": "High Risk",
+  "report_markdown": "# Cervical Cancer Risk Assessment Report\n..."
+}
+```
+
+### Response fields
+
+- `prediction` — `0` (Negative) or `1` (Positive)
+- `prediction_label` — human-readable label
+- `confidence` — probability of the positive class (0–1), when the model supports it
+- `model_name` / `model_version` — which registry model answered
+- `threshold` — decision threshold used (0.5)
 
 ---
 
 ## 🏆 Available Models
 
-| Model | F1-Score | ROC-AUC | Best For |
-|-------|----------|---------|----------|
-| **Linear_SVM** ⭐ | 0.8696 | 0.9534 | Best overall (default) |
-| **AdaBoost** ⭐ | 0.8696 | 0.9470 | Tied for best |
-| Bagging | 0.8571 | 0.9476 | Ensemble method |
-| Gradient_Boosting | 0.8571 | 0.9307 | Sequential learning |
-| Logistic_Regression | 0.8333 | 0.9545 | Interpretable |
-| Polynomial_SVM | 0.8182 | 0.9371 | Non-linear patterns |
-| Random_Forest | 0.7826 | 0.9263 | Feature importance |
-| RBF_SVM | 0.6000 | 0.9604 | Complex boundaries |
+The 9 registered models are: `Gradient_Boosting`, `Hist_Gradient_Boosting`,
+`Random_Forest`, `LDA_Shrinkage`, `Linear_SVM`, `Logistic_ElasticNet`,
+`Logistic_Regression`, `RBF_SVM`, `SGD_ElasticNet`.
 
-**Note:** Different models may give different predictions for the same patient. This is expected and useful for comparing model perspectives!
+`Gradient_Boosting` is promoted to **Production** and is the API default; the
+others are registered with stage `None` and can be selected per request.
 
----
+| Model | Test F1 | Test ROC-AUC |
+|-------|---------|--------------|
+| RBF_SVM | 0.6667 | 0.8450 |
+| Gradient_Boosting | 0.6316 | 0.8543 |
+| Hist_Gradient_Boosting | 0.6316 | 0.8667 |
+| LDA_Shrinkage | 0.6316 | 0.9029 |
+| Linear_SVM | 0.6316 | 0.7438 |
+| Logistic_ElasticNet | 0.6316 | 0.8533 |
+| Logistic_Regression | 0.6316 | 0.7748 |
+| Random_Forest | 0.6316 | 0.8554 |
+| SGD_ElasticNet | 0.6000 | 0.8223 |
 
-## 🐳 Docker Deployment
-
-### Prerequisites
-- Docker Desktop installed and running
-
-### Start All Services
-
-```bash
-# Build and start containers
-docker-compose up --build
-
-# Or run in background
-docker-compose up -d --build
-```
-
-### Access Services
-- **FastAPI API**: http://localhost:8000/docs
-- **MLflow UI**: http://localhost:5000
-
-### Stop Services
-
-```bash
-docker-compose down
-```
-
-See [DOCKER_GUIDE.md](DOCKER_GUIDE.md) for complete Docker documentation.
-
----
-
-## 📁 Project Structure
-
-```
-risk-factor/
-├── 📊 Data & Models
-│   ├── kag_risk_factors_cervical_cancer.csv  # Raw dataset
-│   ├── mlflow.db                             # MLflow tracking database
-│   ├── mlruns/                               # Model artifacts
-│   └── feature_columns.json                  # Feature names
-│
-├── 🔧 Pipeline Scripts
-│   ├── 01_eda.py                            # Exploratory data analysis
-│   ├── 02_feature_engineering.py            # Feature engineering pipeline
-│   ├── 03_model_training.py                 # Model training & evaluation
-│   └── 04_mlflow_model_registry.py          # Model registration
-│
-├── 🚀 FastAPI Application
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── config.py                        # Settings & configuration
-│   │   ├── models.py                        # Pydantic schemas
-│   │   ├── model_loader.py                  # MLflow model loading
-│   │   ├── preprocessor.py                  # Input preprocessing
-│   │   ├── main.py                          # FastAPI app factory
-│   │   └── routers/
-│   │       ├── health.py                    # GET /health
-│   │       └── predict.py                   # POST /predict
-│   ├── run.py                               # Start server
-│   └── requirements.txt
-│
-├── 🐳 Docker
-│   ├── Dockerfile                           # API container recipe
-│   ├── docker-compose.yml                   # Multi-container setup
-│   ├── .dockerignore                        # Build exclusions
-│   └── DOCKER_GUIDE.md                      # Docker tutorial
-│
-└── 📝 Documentation
-    ├── README.md                            # This file
-    ├── README_CERVICAL_CANCER_API.md        # Detailed API guide
-    └── predict_example.py                   # Example usage script
-```
+> Different models can give different predictions for the same patient — that is
+> expected and useful for comparing model perspectives.
 
 ---
 
 ## 💡 Examples
 
-### Python Example
+### Python
 
 ```python
-import urllib.request
 import json
+import urllib.request
 
-# Patient data
-patient = {
-    "age": 25,
-    "number_of_sexual_partners": 1,
-    "first_sexual_intercourse": 22,
-    "num_of_pregnancies": 0,
-    "smokes_years": 0,
-    "smokes_packs_per_year": 0,
-    "hormonal_contraceptives_years": 0,
-    "iud_years": 0,
-    "stds_number": 0,
-    "stds_condylomatosis": 0,
-    "stds_cervical_condylomatosis": 0,
-    "stds_vaginal_condylomatosis": 0,
-    "stds_vulvo_perineal_condylomatosis": 0,
-    "stds_syphilis": 0,
-    "stds_pelvic_inflammatory_disease": 0,
-    "stds_genital_herpes": 0,
-    "stds_molluscum_contagiosum": 0,
-    "stds_aids": 0,
-    "stds_hiv": 0,
-    "stds_hepatitis_b": 0,
-    "stds_hpv": 0,
-    "stds_number_of_diagnosis": 0,
-    "dx_cancer": 0,
-    "dx_cin": 0,
-    "dx_hpv": 0,
-    "dx": 0,
-    "hinselmann": 0,
-    "schiller": 0,
-    "citology": 0
-}
-
-# Predict with AdaBoost
-url = "http://localhost:8000/predict?model=AdaBoost"
+payload = json.load(open("api/demo_prediction.json"))
 req = urllib.request.Request(
-    url,
-    data=json.dumps(patient).encode(),
+    "http://localhost:8000/predict?model=Gradient_Boosting",
+    data=json.dumps(payload).encode(),
     headers={"Content-Type": "application/json"},
-    method="POST"
+    method="POST",
 )
-
-response = urllib.request.urlopen(req)
-result = json.loads(response.read().decode())
-print(f"Prediction: {result['prediction_label']}")
-print(f"Confidence: {result['confidence']:.4f}")
+result = json.loads(urllib.request.urlopen(req).read().decode())
+print(result["prediction_label"], result["confidence"])
 ```
 
-### cURL Example
+### cURL
 
 ```bash
-# Predict with default model
-curl -X POST http://localhost:8000/predict \
+curl http://localhost:8000/health
+curl http://localhost:8000/models
+curl -X POST "http://localhost:8000/predict?model=RBF_SVM" \
   -H "Content-Type: application/json" \
-  -d '{"age":25,"number_of_sexual_partners":1,...}'
-
-# Predict with specific model
-curl -X POST "http://localhost:8000/predict?model=AdaBoost" \
-  -H "Content-Type: application/json" \
-  -d '{"age":25,"number_of_sexual_partners":1,...}'
+  -d @api/demo_prediction.json
 ```
 
 ---
 
-## 📊 Results
+## 🔧 Configuration
 
-### Model Performance
+All settings live in `api/app/config.py` and can be overridden via environment
+variables (or a `.env` file):
 
-| Model | Accuracy | Precision | Recall | F1-Score | ROC-AUC |
-|-------|----------|-----------|--------|----------|---------|
-| Linear_SVM | 0.9820 | 0.8333 | 0.9091 | **0.8696** | 0.9534 |
-| AdaBoost | 0.9820 | 0.8333 | 0.9091 | **0.8696** | 0.9470 |
-| Bagging | 0.9820 | 0.9000 | 0.8182 | 0.8571 | 0.9476 |
-| Gradient_Boosting | 0.9820 | 0.9000 | 0.8182 | 0.8571 | 0.9307 |
-
-### Live API Test Results
-
-```
-PREDICTIONS WITH DIFFERENT MODELS:
-Linear_SVM               : Negative   (confidence: 0.000000)
-AdaBoost                 : Positive   (confidence: 0.594546)
-Random_Forest            : Positive   (confidence: 0.780000)
-Gradient_Boosting        : Positive   (confidence: 0.990534)
-```
-
-**Observation:** Different models give different predictions, demonstrating the value of model selection!
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `MLFLOW_TRACKING_URI` | `sqlite:///<root>/notebooks/mlflow.db` | Registry backend |
+| `MODEL_NAME` | `Gradient_Boosting` | Default model |
+| `MODEL_STAGE` | `Production` | Default stage |
+| `FEATURE_COLUMNS_PATH` | `<root>/processed_data/feature_columns.json` | Feature order |
+| `PREDICTION_THRESHOLD` | `0.5` | Decision threshold |
+| `HOST` / `PORT` | `0.0.0.0` / `8000` | Server bind |
 
 ---
 
-## 🛠️ Technology Stack
+## 🗂️ Project Structure
 
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| **API Framework** | FastAPI | 0.139.0 |
-| **ML Framework** | Scikit-learn | 1.9.0 |
-| **Model Registry** | MLflow | 3.14.0 |
-| **Data Processing** | Pandas, NumPy | 2.3.3, 2.3.3 |
-| **API Server** | Uvicorn | 0.51.0 |
-| **Validation** | Pydantic | 2.13.4 |
-| **Containerization** | Docker | 29.6.1 |
-| **Imbalance Handling** | SMOTE (imbalanced-learn) | Latest |
+```
+api/
+├── app/
+│   ├── main.py            # FastAPI app, CORS, error handlers, lifespan
+│   ├── config.py          # Settings
+│   ├── model_loader.py    # MLflow loading, caching, model listing
+│   ├── models.py          # Pydantic schemas (35 features)
+│   ├── preprocessor.py    # Feature-order alignment
+│   ├── report_generator.py
+│   ├── templates/risk_report_template.md
+│   └── routers/{health,predict,report}.py
+├── run.py
+├── requirements.txt
+└── demo_prediction.json
+```
 
 ---
 
-## 🎓 Key Features Explained
+## 🐳 Docker
 
-### 1. Dynamic Model Selection
-Choose any model per request using query parameters:
+The compose stack runs the API (port 8000) and the MLflow UI (port 5000) and
+shares `notebooks/mlflow.db` + `mlruns/` as volumes.
+
 ```bash
-POST /predict?model=AdaBoost
-POST /predict?model=Random_Forest
-POST /predict?model=Gradient_Boosting
-```
-
-### 2. Input Validation
-All 29 features are validated using Pydantic:
-- Type checking (int, float)
-- Range validation (e.g., age: 10-100)
-- Required field enforcement
-- Extra field rejection
-
-### 3. Confidence Scores
-Get probability estimates when available:
-```json
-{
-  "prediction": 1,
-  "prediction_label": "Positive",
-  "confidence": 0.85
-}
-```
-
-### 4. Model Caching
-Models are loaded once and cached for fast predictions:
-- First request: ~2-3 seconds (loads model)
-- Subsequent requests: ~50-100ms (cached)
-
----
-
-## 📈 Pipeline Workflow
-
-```
-1. EDA (01_eda.py)
-   ↓ Load data, analyze distributions, correlations, outliers
-   
-2. Feature Engineering (02_feature_engineering.py)
-   ↓ Clean data, handle missing values, scale features, apply SMOTE
-   
-3. Model Training (03_model_training.py)
-   ↓ Train 8 models, track with MLflow, evaluate performance
-   
-4. Model Registration (04_mlflow_model_registry.py)
-   ↓ Register models in MLflow, set stages, add descriptions
-   
-5. API Deployment (app/)
-   ↓ FastAPI service with dynamic model selection
-   
-6. Docker Containerization
-   ↓ Package everything into containers
+cd docker
+docker-compose -f cervical_docker-compose.yml up --build
+docker-compose -f cervical_docker-compose.yml down
 ```
 
 ---
 
 ## 🧪 Testing
 
-### Run Example Script
 ```bash
-python predict_example.py
+cd api
+pip install -r requirements.txt pytest
+pytest tests -q
 ```
 
-This will:
-1. List all available models
-2. Make predictions with default model
-3. Compare predictions across 4 different models
-4. Show confidence scores
-
-### Manual Testing
-```bash
-# Health check
-curl http://localhost:8000/health
-
-# List models
-curl http://localhost:8000/models
-
-# Predict
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d "{\"age\":25,\"number_of_sexual_partners\":1,...}"
-```
+The tests run without MLflow artifacts: they stub the registry with a small
+scikit-learn pipeline and generate `feature_columns.json` from
+`demo_prediction.json`.
 
 ---
 
-## 🚢 Deployment
+## 🔍 Troubleshooting
 
-### Local Deployment
-```bash
-python run.py
-```
-
-### Docker Deployment
-```bash
-docker-compose up --build
-```
-
-### Cloud Deployment
-Ready for deployment on:
-- AWS ECS / EKS
-- Google Cloud Run
-- Azure Container Instances
-- Kubernetes
-- Heroku
-
----
-
-## 📝 Documentation
-
-- **[README_CERVICAL_CANCER_API.md](README_CERVICAL_CANCER_API.md)** - Detailed API guide
-- **[DOCKER_GUIDE.md](DOCKER_GUIDE.md)** - Complete Docker tutorial
-- **[predict_example.py](predict_example.py)** - Working examples
-- **Swagger UI** - Interactive docs at http://localhost:8000/docs
-
----
-
-## 🎯 Next Steps
-
-1. ✅ **Use the API** - Go to http://localhost:8000/docs
-2. ✅ **Test predictions** - Try different models
-3. ✅ **View MLflow** - Check model registry at http://localhost:5000
-4. ✅ **Deploy with Docker** - Run `docker-compose up --build`
-5. ✅ **Integrate with frontend** - Call API from web/mobile app
-6. ✅ **Monitor in production** - Add logging and monitoring
-
----
-
-## 👨‍💻 Author
-
-**ML Pipeline** - Built with ❤️ for healthcare AI
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
----
-
-## 🙏 Acknowledgments
-
-- Dataset: Kaggle - Cervical Cancer Risk Factors
-- MLflow for model tracking and registry
-- FastAPI for the amazing web framework
-- Scikit-learn for machine learning tools
-
----
-
-<div align="center">
-
-**⭐ Star this repo if you find it helpful!**
-
-Made with ❤️ for better healthcare through AI
-
-</div>
+| Symptom | Fix |
+|---------|-----|
+| `/predict` returns 500 "No versions found" | Run the pipeline so `notebooks/mlflow.db` is populated, then restart |
+| `/predict` returns 404 for a model | Use an exact registered name from `GET /models` (e.g. `Linear_SVM`) |
+| `Feature columns file not found` | Run `cervical_02_feature_engineering_advanced.ipynb` to generate `processed_data/feature_columns.json` |
+| Port already in use | Change `PORT` in `app/config.py` |
